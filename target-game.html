@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 Click the Target!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: white;
+            padding: 20px;
+            user-select: none;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+
+        /* ========================================
+           🎮 THE GAME AREA - This is where targets appear!
+           ======================================== */
+        .game-area {
+            width: 500px;
+            height: 400px;
+            background: #1a1a2e;
+            border-radius: 20px;
+            position: relative;          /* This lets us put targets anywhere inside */
+            overflow: hidden;            /* Hides anything that goes outside the box */
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            border: 3px solid #333;
+            cursor: crosshair;           /* Makes the cursor look like a target! */
+        }
+
+        /* ========================================
+           🎯 THE TARGET - This is what you click!
+           TRY CHANGING: width, height, background color
+           ======================================== */
+        .target {
+            position: absolute;          /* Lets us move it anywhere */
+            width: 60px;                 /* 👈 CHANGE THIS to make target bigger/smaller! */
+            height: 60px;                /* 👈 CHANGE THIS too! */
+            background: radial-gradient(circle, #ff6b6b 0%, #ee5a5a 50%, #c0392b 100%);
+            border-radius: 50%;          /* Makes it a circle (try 0% for a square!) */
+            cursor: pointer;
+            transform: translate(-50%, -50%);  /* Centers the target on its position */
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
+            transition: transform 0.1s;
+            display: none;               /* Hidden until the game starts */
+        }
+
+        /* When you hover over the target */
+        .target:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        /* The rings inside the target */
+        .target::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 30px;
+            background: white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .target::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            background: #c0392b;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .start-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 1.5rem;
+        }
+
+        .start-message .emoji {
+            font-size: 4rem;
+            margin-bottom: 10px;
+        }
+
+        .start-btn {
+            margin-top: 20px;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        /* ========================================
+           📊 THE SCOREBOARD
+           ======================================== */
+        .stats {
+            margin-top: 30px;
+            display: flex;
+            gap: 30px;
+            text-align: center;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 25px;
+            border-radius: 15px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .stat-value.score {
+            color: #2ecc71;
+        }
+
+        .stat-value.time {
+            color: #f1c40f;
+        }
+
+        /* ========================================
+           💥 HIT EFFECT - The explosion when you click!
+           ======================================== */
+        .hit-effect {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #f1c40f;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: explode 0.4s ease-out forwards;
+        }
+
+        @keyframes explode {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(4);
+                opacity: 0;
+            }
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 20px;
+            display: none;
+        }
+
+        .final-score {
+            font-size: 3rem;
+            color: #f1c40f;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 Click the Target!</h1>
+    <p class="subtitle">Click as many targets as you can in 30 seconds!</p>
+
+    <div class="game-area" id="gameArea">
+        <!-- The target that moves around -->
+        <div class="target" id="target"></div>
+
+        <!-- Start screen -->
+        <div class="start-message" id="startMessage">
+            <div class="emoji">🎯</div>
+            <div>Ready to test your aim?</div>
+            <button class="start-btn" id="startBtn">Start Game!</button>
+        </div>
+
+        <!-- Game over screen -->
+        <div class="game-over" id="gameOver">
+            <div style="font-size: 2rem;">⏰ Time's Up!</div>
+            <div class="final-score" id="finalScore">0</div>
+            <div>targets hit!</div>
+            <button class="start-btn" id="playAgain">Play Again</button>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="stat-box">
+            <div class="stat-label">Score</div>
+            <div class="stat-value score" id="score">0</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Time Left</div>
+            <div class="stat-value time" id="timeLeft">30</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Best Score</div>
+            <div class="stat-value" id="bestScore">0</div>
+        </div>
+    </div>
+
+    <script>
+        // =============================================
+        // 🎮 GAME SETTINGS - CHANGE THESE NUMBERS!
+        // =============================================
+
+        const GAME_TIME = 30;        // 👈 How many seconds the game lasts (try 10 or 60!)
+        const TARGET_SIZE = 60;      // 👈 How big the target is in pixels (try 30 for hard, 100 for easy!)
+
+        // =============================================
+        // 📦 VARIABLES - Boxes that store information
+        // =============================================
+
+        let score = 0;               // How many targets you've hit
+        let timeLeft = GAME_TIME;    // Seconds remaining
+        let bestScore = 0;           // Your highest score ever
+        let gameRunning = false;     // Is the game happening right now?
+        let timerInterval = null;    // Controls the countdown
+
+        // =============================================
+        // 🔍 FINDING THINGS ON THE PAGE
+        // document.getElementById() is like saying "find the thing named ___"
+        // =============================================
+
+        const gameArea = document.getElementById('gameArea');
+        const target = document.getElementById('target');
+        const scoreDisplay = document.getElementById('score');
+        const timeDisplay = document.getElementById('timeLeft');
+        const bestScoreDisplay = document.getElementById('bestScore');
+        const startMessage = document.getElementById('startMessage');
+        const startBtn = document.getElementById('startBtn');
+        const gameOverScreen = document.getElementById('gameOver');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const playAgainBtn = document.getElementById('playAgain');
+
+        // =============================================
+        // 🎬 START THE GAME
+        // This function runs when you click "Start Game!"
+        // =============================================
+
+        function startGame() {
+            // Reset everything
+            score = 0;
+            timeLeft = GAME_TIME;
+            gameRunning = true;
+
+            // Update the displays
+            scoreDisplay.textContent = score;
+            timeDisplay.textContent = timeLeft;
+
+            // Hide menus, show the target
+            startMessage.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            target.style.display = 'block';
+
+            // Move the target to a random spot
+            moveTarget();
+
+            // Start the countdown timer
+            // setInterval means "do this every 1000 milliseconds (1 second)"
+            timerInterval = setInterval(function() {
+                timeLeft = timeLeft - 1;           // Subtract 1 from time
+                timeDisplay.textContent = timeLeft; // Show the new time
+
+                // Is time up?
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        // =============================================
+        // 🎯 MOVE THE TARGET TO A RANDOM SPOT
+        // This is the magic that makes the target jump around!
+        // =============================================
+
+        function moveTarget() {
+            // Get the size of the game area
+            const areaWidth = gameArea.offsetWidth;
+            const areaHeight = gameArea.offsetHeight;
+
+            // Pick random X and Y positions
+            // Math.random() gives a number between 0 and 1
+            // We multiply by the area size and add padding so it doesn't go off the edge
+
+            const padding = 40;  // 👈 Keep target away from edges
+
+            const randomX = padding + Math.random() * (areaWidth - padding * 2);
+            const randomY = padding + Math.random() * (areaHeight - padding * 2);
+
+            // Move the target to the new position!
+            target.style.left = randomX + 'px';
+            target.style.top = randomY + 'px';
+        }
+
+        // =============================================
+        // 💥 WHAT HAPPENS WHEN YOU CLICK THE TARGET
+        // =============================================
+
+        target.addEventListener('click', function(event) {
+            if (!gameRunning) return;  // Do nothing if game isn't running
+
+            // Add 1 to the score!
+            score = score + 1;
+            scoreDisplay.textContent = score;
+
+            // Create a cool explosion effect
+            createHitEffect(event.clientX, event.clientY);
+
+            // Move target to a new random spot
+            moveTarget();
+        });
+
+        // =============================================
+        // 💫 CREATE THE EXPLOSION EFFECT
+        // This makes the yellow burst when you click!
+        // =============================================
+
+        function createHitEffect(x, y) {
+            const effect = document.createElement('div');
+            effect.className = 'hit-effect';
+
+            // Position it where you clicked
+            const rect = gameArea.getBoundingClientRect();
+            effect.style.left = (x - rect.left) + 'px';
+            effect.style.top = (y - rect.top) + 'px';
+
+            gameArea.appendChild(effect);
+
+            // Remove it after the animation finishes
+            setTimeout(function() {
+                effect.remove();
+            }, 400);
+        }
+
+        // =============================================
+        // 🏁 END THE GAME
+        // =============================================
+
+        function endGame() {
+            gameRunning = false;
+            clearInterval(timerInterval);  // Stop the countdown
+            target.style.display = 'none';  // Hide the target
+
+            // Check if this is a new best score!
+            if (score > bestScore) {
+                bestScore = score;
+                bestScoreDisplay.textContent = bestScore;
+            }
+
+            // Show the game over screen
+            finalScoreDisplay.textContent = score;
+            gameOverScreen.style.display = 'block';
+        }
+
+        // =============================================
+        // 🎮 BUTTON CLICKS
+        // These connect the buttons to the startGame function
+        // =============================================
+
+        startBtn.addEventListener('click', startGame);
+        playAgainBtn.addEventListener('click', startGame);
+    </script>
+</body>
+</html>
